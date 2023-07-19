@@ -2,6 +2,7 @@ import numpy as np
 from numpy.matlib import repmat
 import os
 import pandas as pd
+from tqdm import tqdm
 
 ## Relative imports
 from execution.RCC_utils import RCC_average, directionality_test
@@ -35,11 +36,16 @@ def process_single_subject(subject_file, opts, output_dir, json_file_config, for
 
     # ROIs from input command
     ROIs = list(range(time_series.shape[-1])) if ROIs[0] == -1 else [roi-1 for roi in ROIs]
+    ROIs = ROIs[:5]
 
     # Time series to analyse -- dims: ROIs X 1 X time-points
     TS2analyse = np.expand_dims(
         np.array([time_series[:limit,roi] for roi in ROIs]), axis=1
     )
+
+    print(f"TS2analyse.shape: {TS2analyse.shape}")
+    print(f"No. ROIs: {len(ROIs)} -> No. pairs: {int(0.5 * len(ROIs) * (len(ROIs) - 1))}\n")
+    # return
     
     # Lags and number of runs to test for a given subject (Note: the number of runs is not really super important in the absence of noise)
     lags = np.arange(opts.min_lag, opts.max_lag)
@@ -50,7 +56,9 @@ def process_single_subject(subject_file, opts, output_dir, json_file_config, for
     # Compute RCC causality
     run_self_loops = False
     for i, roi_i in enumerate(ROIs):
+        print("=====")
         for j in range(i if run_self_loops else i+1, len(ROIs)):
+            print("---")
             roi_j = ROIs[j]
             
             # Run RCC by splitting on axis #1 (i.e., the time points)
@@ -61,6 +69,7 @@ def process_single_subject(subject_file, opts, output_dir, json_file_config, for
             # IAAFT surrogates test
             surrogate_x2y, surrogate_y2x = np.zeros((len(lags),1,N_surrogates)), np.zeros((len(lags),1,N_surrogates))
             for surr in range(N_surrogates):
+                print(".")
                 surrogate_i, surrogate_j = refined_AAFT_surrogates(TS2analyse[i]), refined_AAFT_surrogates(TS2analyse[j])
                 surrogate_x2y[...,surr], _, _, _ = RCC_average(
                     TS2analyse[i], surrogate_j, lags, I2N, N2N, split=split, skip=skip, shuffle=False, axis=1, runs=None, average=False

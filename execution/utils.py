@@ -9,7 +9,7 @@ def run_RCC():
     # Loading the configurations and files with time series 
     opts, files, results_dir, json_config, timeseries_type = initialize_and_grep_files()
     
-    if len(files) == 1:
+    if True:
         print("Single subject") 
         print("==============")
         process_single_subject(files[0], opts, results_dir, json_config, format='png')
