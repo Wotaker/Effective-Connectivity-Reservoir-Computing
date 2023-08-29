@@ -36,22 +36,24 @@ def process_single_subject(subject_file, opts, output_dir, json_file_config, for
 
     # ROIs from input command
     ROIs = list(range(time_series.shape[-1])) if ROIs[0] == -1 else [roi-1 for roi in ROIs]
-    ROIs = ROIs[:5]
+    print(f"No. ROIs: {len(ROIs)} -> No. pairs: {int(0.5 * len(ROIs) * (len(ROIs) - 1))}\n")
+    print(f"\tROIs: {ROIs}")
 
     # Time series to analyse -- dims: ROIs X 1 X time-points
     TS2analyse = np.expand_dims(
         np.array([time_series[:limit,roi] for roi in ROIs]), axis=1
     )
-
     print(f"TS2analyse.shape: {TS2analyse.shape}")
-    print(f"No. ROIs: {len(ROIs)} -> No. pairs: {int(0.5 * len(ROIs) * (len(ROIs) - 1))}\n")
-    # return
     
     # Lags and number of runs to test for a given subject (Note: the number of runs is not really super important in the absence of noise)
     lags = np.arange(opts.min_lag, opts.max_lag)
+    print(f"lags: {lags}")
 
     # Initialization of the Reservoir blocks
     I2N, N2N = return_reservoir_blocks(json_file=json_file_config, exec_args=opts)
+
+    # Initialize the effective connectivity network with zeros
+    effective_connectivity = np.zeros((len(lags), len(ROIs), len(ROIs)))
 
     # Compute RCC causality
     run_self_loops = False
@@ -94,15 +96,19 @@ def process_single_subject(subject_file, opts, output_dir, json_file_config, for
             output_dir_subject = os.path.join(output_dir,name_subject)
             numerical = os.path.join(output_dir_subject,"Numerical")
             figures = os.path.join(output_dir_subject,"Figures")
+            networks = os.path.join(output_dir_subject,"Networks")
             if not os.path.exists(output_dir_subject):
                 os.mkdir(output_dir_subject)
             if not os.path.exists(numerical):
                 os.mkdir(numerical)
             if not os.path.exists(figures):
                 os.mkdir(figures)
+            if not os.path.exists(networks):
+                os.mkdir(networks)
             name_subject_RCC = name_subject + '_RCC_rois-' +str(roi_i+1) + 'vs' + str(roi_j+1)
             name_subject_RCC_figure = os.path.join(figures, name_subject_RCC+'.' + format)
             name_subject_RCC_numerical = os.path.join(numerical ,name_subject_RCC+'.tsv')
+            name_subject_RCC_networks = os.path.join(networks, name_subject + '_RCC.npy')
 
             # Save numerical results
             x2ylabel, y2xlabel = str(roi_i+1) + ' --> ' + str(roi_j+1), str(roi_j+1) + ' --> ' + str(roi_i+1)
@@ -138,6 +144,12 @@ def process_single_subject(subject_file, opts, output_dir, json_file_config, for
                         {"data": evidence_xy, "color": "purple", "label": xylabel}
                     ]
                 )
+            
+            # Save Networks per each evidence
+            effective_connectivity[:, i, j] = np.nan_to_num(Score_x2y + Score_xy)
+            effective_connectivity[:, j, i] = np.nan_to_num(Score_y2x + Score_xy)
+
+    np.save(name_subject_RCC_networks, effective_connectivity)
             
 
 def process_multiple_subjects(subjects_files, opts, output_dir, json_file_config, format='svg', name_subject=None):
