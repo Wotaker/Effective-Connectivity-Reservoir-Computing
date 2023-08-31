@@ -1,4 +1,5 @@
 import os
+import sys
 import numpy as np
 from scipy.io import loadmat
 
@@ -20,15 +21,23 @@ def parse_mat_file(mat_file_path: str, destination_dir: str, mat_key: str = "reg
         The convention of dims ordering in the .mat file. If subject_first is True, it means that the 1st dimension represents subjects, otherwise it is assumed that the last (3rd) dimension represents subjects, by default False
     """
 
+    print(f"[Python] Parsing .mat file: {mat_file_path}...")
     data = loadmat(mat_file_path)[mat_key]
 
     if not subject_first:
         data = np.transpose(data, (2, 0, 1))
     
     for idx, subject in enumerate(data):
+        print(f"[Python] Saving subject {1+idx:04d}...")
         subject_file_name = f"sub-{1+idx:04d}_TS.txt"
         with open(os.path.join(destination_dir, subject_file_name), "w") as subject_file:
             lines = []
             for timestep in subject:
                 lines.append("\t".join(list(map(lambda x: f"{x:.06f}", timestep))) + "\n")
             subject_file.writelines(lines)
+
+
+if __name__ == "__main__":
+    print(f"[Python] Running python script...")
+    parse_mat_file(sys.argv[1], sys.argv[2])
+    print(f"[Python] Finished running python script")

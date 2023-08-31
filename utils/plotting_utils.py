@@ -4,8 +4,6 @@ import numpy as np
 import networkx as nx
 import os
 
-from IPython.display import HTML
-
 def plot_RCC_Evidence(lags, *to_plot, **kwargs):
     """
     TODO: Add description
