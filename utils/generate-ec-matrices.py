@@ -69,7 +69,7 @@ def parse_subjects(results_dir: str, no_ROIs: int):
     # Parse each subject and save effective connectivity matrix to a npy file
     lags_template = None
     for subject_path in subjects_paths:
-        subject_name = subject_path.split('/')[-1]
+        subject_name = subject_path.split('/')[-1].split('_')[0]
         lags, effective_connectivity = parse_single_subject(subject_path, no_ROIs=no_ROIs)
 
         if lags_template is None:
@@ -77,7 +77,7 @@ def parse_subjects(results_dir: str, no_ROIs: int):
         else:
             assert np.equal(lags, lags_template).all(), f'lags mismatch for subject {subject_name}'
         
-        np.save(os.path.join(subject_path, f'{subject_name}_EC.npy'), effective_connectivity)
+        np.save(os.path.join(subject_path, f'{subject_name}.npy'), effective_connectivity)
     
     # Save lag values
     np.save(os.path.join(results_dir, 'lags.npy'), lags_template)
