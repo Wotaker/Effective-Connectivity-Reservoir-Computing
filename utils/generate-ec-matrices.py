@@ -77,7 +77,7 @@ def parse_subjects(results_dir: str, no_ROIs: int):
         else:
             assert np.equal(lags, lags_template).all(), f'lags mismatch for subject {subject_name}'
         
-        np.save(os.path.join(subject_path, f'{subject_name}_EC.npy'), effective_connectivity)
+        np.save(os.path.join(subject_path, f'{subject_name}.npy'), effective_connectivity)
     
     # Save lag values
     np.save(os.path.join(results_dir, 'lags.npy'), lags_template)

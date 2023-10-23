@@ -25,7 +25,7 @@ def process_single_subject(subject_file, opts, output_dir, json_file_config, for
 
     length, ROIs, split, skip, runs, N_surrogates = opts.length, opts.rois, opts.split, opts.skip, opts.runs, opts.num_surrogates
     name_subject = subject_file.split("/")[-1].split("_TS")[0] + '_Length-' + str(length)
-    print(f"Participant ID: {name_subject}")
+    print(f"[Python] Participant ID: {name_subject}")
     
     # Load time series from subject -- dims: time-points X total-ROIs
     time_series = np.genfromtxt(subject_file)# TODO: Add compatibility, delimiter='\t')
@@ -35,6 +35,9 @@ def process_single_subject(subject_file, opts, output_dir, json_file_config, for
 
     # ROIs from input command
     ROIs = list(range(time_series.shape[-1])) if ROIs[0] == -1 else [roi-1 for roi in ROIs]
+    no_pairs = {int(0.5 * len(ROIs) * (len(ROIs) - 1))}
+    print(f"[Python] No. ROIs: {len(ROIs)} -> No. pairs: {no_pairs}\n")
+    print(f"\tROIs: {ROIs}\n")
 
     # Time series to analyse -- dims: ROIs X 1 X time-points
     TS2analyse = np.expand_dims(
@@ -49,8 +52,12 @@ def process_single_subject(subject_file, opts, output_dir, json_file_config, for
 
     # Compute RCC causality
     run_self_loops = False
+    pair_counter = 1
     for i, roi_i in enumerate(ROIs):
         for j in range(i if run_self_loops else i+1, len(ROIs)):
+            print(f"[Python] ROI pair {pair_counter} out of {no_pairs}")
+            pair_counter += 1
+            
             roi_j = ROIs[j]
             
             # Run RCC by splitting on axis #1 (i.e., the time points)
