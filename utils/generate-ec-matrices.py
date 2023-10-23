@@ -69,7 +69,7 @@ def parse_subjects(results_dir: str, no_ROIs: int):
     # Parse each subject and save effective connectivity matrix to a npy file
     lags_template = None
     for subject_path in subjects_paths:
-        subject_name = subject_path.split('/')[-1]
+        subject_name = subject_path.split('/')[-1].split('_')[0]
         lags, effective_connectivity = parse_single_subject(subject_path, no_ROIs=no_ROIs)
 
         if lags_template is None:

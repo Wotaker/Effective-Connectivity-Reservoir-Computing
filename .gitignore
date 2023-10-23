@@ -132,3 +132,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Ignore Datasets
+Datasets/
+
+# Ignore sandbox
+sdbx/
