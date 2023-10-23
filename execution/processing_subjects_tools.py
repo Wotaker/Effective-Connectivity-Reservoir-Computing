@@ -9,6 +9,58 @@ from execution.reservoir_networks import return_reservoir_blocks
 from utils.timeseries_surrogates import refined_AAFT_surrogates
 from utils.plotting_utils import plot_RCC_Evidence
 
+
+def update_dataframe(
+        acc: pd.DataFrame, 
+        ROI_x: int,
+        ROI_y: int,
+        lags: np.ndarray, 
+        Score_xy: np.ndarray, 
+        Score_x2y: np.ndarray, 
+        Score_y2x: np.ndarray, 
+        mean_x2y: np.ndarray, 
+        mean_y2x: np.ndarray, 
+        sem_x2y: np.ndarray, 
+        sem_y2x: np.ndarray, 
+        mean_x2ys: np.ndarray, 
+        mean_y2xs: np.ndarray, 
+        sem_x2ys: np.ndarray, 
+        sem_y2xs: np.ndarray, 
+    ):
+
+    # Create a temporary dataframe to results from x to y
+    new_data_xy = pd.DataFrame({
+        "time-lags": lags,
+        "ROIx": [ROI_x] * len(lags),
+        "ROIy": [ROI_y] * len(lags),
+        "SymetricRCCS": Score_xy,
+        "RCCS": Score_x2y,
+        "Mean": mean_x2y,
+        'SEM': sem_x2y,
+        'Surrogate': mean_x2ys,
+        'SurrogateSEM': sem_x2ys,
+    })
+
+    # Create a temporary dataframe to results from y to x
+    new_data_yx = pd.DataFrame({
+        "time-lags": lags,
+        "ROIx": [ROI_y] * len(lags),
+        "ROIy": [ROI_x] * len(lags),
+        "SymetricRCCS": Score_xy,
+        "RCCS": Score_y2x,
+        "Mean": mean_y2x,
+        'SEM': sem_y2x,
+        'Surrogate': mean_y2xs,
+        'SurrogateSEM': sem_y2xs
+    })
+
+    # Concatenate new data to accumulator and fix data types
+    combined = pd.concat([acc, new_data_xy, new_data_yx], axis=0, ignore_index=True)
+    combined["time-lags"] = combined["time-lags"].astype(int)
+
+    return combined
+
+
 def process_single_subject(subject_file, opts, output_dir, json_file_config, format='svg'):
     """
     TODO: Add description of the function
@@ -23,8 +75,8 @@ def process_single_subject(subject_file, opts, output_dir, json_file_config, for
     TODO: Add output description.
     """
 
-    length, ROIs, split, skip, runs, N_surrogates = opts.length, opts.rois, opts.split, opts.skip, opts.runs, opts.num_surrogates
-    name_subject = subject_file.split("/")[-1].split("_TS")[0] + '_Length-' + str(length)
+    length, ROIs, split, skip, runs, N_surrogates, keep_separate = opts.length, opts.rois, opts.split, opts.skip, opts.runs, opts.num_surrogates, opts.keep_separate
+    name_subject = subject_file.split("/")[-1].split("_")[0]
     print(f"[Python] Participant ID: {name_subject}")
     
     # Load time series from subject -- dims: time-points X total-ROIs
@@ -49,6 +101,25 @@ def process_single_subject(subject_file, opts, output_dir, json_file_config, for
 
     # Initialization of the Reservoir blocks
     I2N, N2N = return_reservoir_blocks(json_file=json_file_config, exec_args=opts)
+
+    # Prepare accumulator dataframe to store results
+    accumulator = pd.DataFrame({
+        "time-lags": [],
+        "ROIx": [],
+        "ROIy": [],
+        "SymetricRCCS": [],
+        "RCCS": [],
+        "Mean": [],
+        'SEM': [],
+        'Surrogate': [],
+        'SurrogateSEM': [],
+    })
+
+    # Destination directories and names of outputs
+    output_dir_subject = os.path.join(output_dir,name_subject)
+    numerical = os.path.join(output_dir_subject,"Numerical")
+    figures = os.path.join(output_dir_subject,"Figures")
+    all_rois_csv_path = os.path.join(output_dir_subject, name_subject + '.tsv')
 
     # Compute RCC causality
     run_self_loops = False
@@ -89,9 +160,6 @@ def process_single_subject(subject_file, opts, output_dir, json_file_config, for
             )
             
             # Destination directories and names of outputs
-            output_dir_subject = os.path.join(output_dir,name_subject)
-            numerical = os.path.join(output_dir_subject,"Numerical")
-            figures = os.path.join(output_dir_subject,"Figures")
             if not os.path.exists(output_dir_subject):
                 os.mkdir(output_dir_subject)
             if not os.path.exists(numerical):
@@ -105,21 +173,41 @@ def process_single_subject(subject_file, opts, output_dir, json_file_config, for
             # Save numerical results
             x2ylabel, y2xlabel = str(roi_i+1) + ' --> ' + str(roi_j+1), str(roi_j+1) + ' --> ' + str(roi_i+1)
             xylabel = str(roi_i+1) + ' <--> ' + str(roi_j+1)
-            results = pd.DataFrame({
-                "time-lags": lags,
-                "RCCS " + xylabel: Score_xy,
-                "RCCS " + x2ylabel: Score_x2y,
-                "RCCS " + y2xlabel: Score_y2x,
-                x2ylabel: mean_x2y,
-                y2xlabel: mean_y2x,
-                'SEM ' + x2ylabel: sem_x2y,
-                'SEM ' + y2xlabel: sem_y2x,
-                'Surrogate' + x2ylabel: mean_x2ys,
-                'Surrogate' + y2xlabel: mean_y2xs,
-                'Surrogate' + 'SEM ' + x2ylabel: sem_x2ys,
-                'Surrogate' + 'SEM ' + y2xlabel: sem_y2xs
-            })
-            results.to_csv(name_subject_RCC_numerical, index=False, sep='\t', decimal='.')
+
+            if keep_separate:
+                results = pd.DataFrame({
+                    "time-lags": lags,
+                    "RCCS " + xylabel: Score_xy,
+                    "RCCS " + x2ylabel: Score_x2y,
+                    "RCCS " + y2xlabel: Score_y2x,
+                    x2ylabel: mean_x2y,
+                    y2xlabel: mean_y2x,
+                    'SEM ' + x2ylabel: sem_x2y,
+                    'SEM ' + y2xlabel: sem_y2x,
+                    'Surrogate' + x2ylabel: mean_x2ys,
+                    'Surrogate' + y2xlabel: mean_y2xs,
+                    'Surrogate' + 'SEM ' + x2ylabel: sem_x2ys,
+                    'Surrogate' + 'SEM ' + y2xlabel: sem_y2xs
+                })
+                results.to_csv(name_subject_RCC_numerical, index=False, sep='\t', decimal='.')
+
+            accumulator = update_dataframe(
+                accumulator,
+                roi_i + 1,
+                roi_j + 1,
+                lags,
+                Score_xy,
+                Score_x2y,
+                Score_y2x,
+                mean_x2y,
+                mean_y2x,
+                sem_x2y,
+                sem_y2x,
+                mean_x2ys,
+                mean_y2xs,
+                sem_x2ys,
+                sem_y2xs,
+            )
 
             # Plot Evidence for Causality  
             if opts.plots.lower() == "true" :
@@ -136,6 +224,9 @@ def process_single_subject(subject_file, opts, output_dir, json_file_config, for
                         {"data": evidence_xy, "color": "purple", "label": xylabel}
                     ]
                 )
+    
+    # Save all results froma all ROI-pairs combined in a single file
+    accumulator.to_csv(all_rois_csv_path, index=False, sep='\t', decimal='.')
             
 
 def process_multiple_subjects(subjects_files, opts, output_dir, json_file_config, format='svg', name_subject=None):

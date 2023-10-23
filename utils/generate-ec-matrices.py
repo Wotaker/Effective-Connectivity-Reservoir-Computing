@@ -4,6 +4,33 @@ import os
 
 from argparse import ArgumentParser
 
+def parse_combined_subject(subject_dir: str, no_ROIs: int, only_directed: bool):
+    
+    subject_name = subject_dir.split('/')[-1].split('_')[0]
+    numerical_results = os.path.join(subject_dir, subject_name + '.tsv')
+    results_df = pd.read_csv(numerical_results, sep='\t')
+    
+    lags = np.array(sorted(set(results_df['time-lags'].values)))
+    effective_connectivity = np.zeros((lags.shape[0], no_ROIs, no_ROIs))
+
+    # Iterate over all ROI pairs
+    for roi_x in range(1, no_ROIs + 1):
+        for roi_y in range(1, no_ROIs + 1):
+
+            # Skip diagonal
+            if roi_x == roi_y:
+                continue
+
+            # Extract causality scores
+            filtered_df = results_df[(results_df['ROIx'] == roi_x) & (results_df['ROIy'] == roi_y)]
+            score_xy = filtered_df['SymetricRCCS'].values
+            score_x2y = filtered_df['RCCS'].values
+
+            # Assign scores to effective connectivity matrix
+            effective_connectivity[:, roi_x - 1, roi_y - 1] = np.nan_to_num(score_x2y + score_xy * (not only_directed))
+    
+    return lags, effective_connectivity
+
 
 def get_lags(sample_roi_file_path: str):
 
@@ -40,6 +67,8 @@ def parse_single_subject(subject_dir: str, no_ROIs: int):
     roi_files_paths = []
     for roi_file_name in os.listdir(numerical_dir):
         roi_files_paths.append(os.path.join(numerical_dir, roi_file_name))
+    assert roi_files_paths, \
+        f'No ROI files found in {numerical_dir}. Try parsing the combined file instead (remove the "--separate" flag).'
     
     # Initialize subject's effective connectivity Matrix with zeros
     lags = get_lags(roi_files_paths[0])
@@ -54,7 +83,7 @@ def parse_single_subject(subject_dir: str, no_ROIs: int):
     return lags, effective_connectivity
     
 
-def parse_subjects(results_dir: str, no_ROIs: int):
+def parse_subjects(results_dir: str, no_ROIs: int, separate: bool, only_directed: bool):
 
     # Get all subjects directories
     subjects_paths = []
@@ -70,25 +99,38 @@ def parse_subjects(results_dir: str, no_ROIs: int):
     lags_template = None
     for subject_path in subjects_paths:
         subject_name = subject_path.split('/')[-1].split('_')[0]
-        lags, effective_connectivity = parse_single_subject(subject_path, no_ROIs=no_ROIs)
 
+        if separate:
+            lags, effective_connectivity = parse_single_subject(
+                subject_path, no_ROIs=no_ROIs
+            )
+        else:
+            lags, effective_connectivity = parse_combined_subject(
+                subject_path, no_ROIs=no_ROIs, only_directed=only_directed
+            )
+        
         if lags_template is None:
             lags_template = lags
         else:
             assert np.equal(lags, lags_template).all(), f'lags mismatch for subject {subject_name}'
         
-        np.save(os.path.join(subject_path, f'{subject_name}.npy'), effective_connectivity)
+        ec_type = '_onlydirected' if only_directed else ''
+        np.save(os.path.join(subject_path, f'{subject_name}{ec_type}_sep.npy'), effective_connectivity)
     
     # Save lag values
     np.save(os.path.join(results_dir, 'lags.npy'), lags_template)
+
 
 if __name__ == "__main__":
 
     # Program arguments
     parser = ArgumentParser()
-    parser.add_argument('-r','--results_dir', type=str, help="Output directory where results are stored")
-    parser.add_argument('-n','--no_ROIs', type=int, help="Number of ROIs")
+    parser.add_argument('-r', '--results_dir', type=str, help="Output directory where results are stored")
+    parser.add_argument('-n', '--no_ROIs', type=int, help="Number of ROIs")
+    parser.add_argument('-s', '--separate', default=False, action='store_true', help="If the combined file exists")
+    parser.add_argument('-d', '--only_directed', default=False, action='store_true', 
+                        help="If only directed causality should be considered when calculating score")
     args = parser.parse_args()
 
     # Parse subjects
-    parse_subjects(args.results_dir, args.no_ROIs)
+    parse_subjects(args.results_dir, args.no_ROIs, args.separate, args.only_directed)

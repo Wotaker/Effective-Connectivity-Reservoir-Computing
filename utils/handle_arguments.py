@@ -28,6 +28,7 @@ def optional_arguments(main_parser):
     main_parser.add_argument('--num_surrogates', type=int, default=100, help="Number of surrogates to generate")
     main_parser.add_argument('--min_lag', type=int, default=-30, help="Minimum value of the negative lag to test")
     main_parser.add_argument('--max_lag', type=int, default=31, help="Maximum value of the positive lag to test")
+    main_parser.add_argument('--keep_separate', default=False, action='store_true', help="Set this flag if you want each ROI-pair results kept in a separate file")
 
     group = main_parser.add_mutually_exclusive_group()
     group.add_argument('--batch_analysis', action='store_true', help="Train the reservoirs on a batch of time series instead of single training. If not present, a different reservoir will be trained for each time series and the results will be avraged.")
