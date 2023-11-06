@@ -127,7 +127,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument('-r', '--results_dir', type=str, help="Output directory where results are stored")
     parser.add_argument('-n', '--no_ROIs', type=int, help="Number of ROIs")
-    parser.add_argument('-s', '--separate', default=False, action='store_true', help="If the combined file exists")
+    parser.add_argument('-s', '--separate', default=False, action='store_true', help="If the results are stored separately")
     parser.add_argument('-d', '--only_directed', default=False, action='store_true', 
                         help="If only directed causality should be considered when calculating score")
     args = parser.parse_args()
