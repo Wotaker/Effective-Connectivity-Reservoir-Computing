@@ -76,7 +76,7 @@ def process_single_subject(subject_file, opts, output_dir, json_file_config, for
     """
 
     length, ROIs, split, skip, runs, N_surrogates, keep_separate = opts.length, opts.rois, opts.split, opts.skip, opts.runs, opts.num_surrogates, opts.keep_separate
-    name_subject = subject_file.split("/")[-1].split("_")[0]
+    name_subject = subject_file.split("/")[-1].split(".")[0].split("_")[0]
     print(f"[Python] Participant ID: {name_subject}")
     
     # Load time series from subject -- dims: time-points X total-ROIs

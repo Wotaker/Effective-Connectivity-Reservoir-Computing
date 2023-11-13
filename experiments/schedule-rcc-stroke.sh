@@ -4,7 +4,7 @@ TIMESTAMP=$(date +%y%m%d_%H%M%S)
 FOLDER_SPEC="rcc-stroke"
 GITREPO="Effective-Connectivity-Reservoir-Computing"
 DATA_DIR=$SCRATCH/Files/GitRepos/$GITREPO/Datasets/stroke-split/
-RESULTS_DIR=$SCRATCH/Files/GitRepos/$GITREPO/Results-$FOLDER_SPEC-$TIMESTAMP/
+RESULTS_DIR=$SCRATCH/Files/GitRepos/$GITREPO/Results-$FOLDER_SPEC/
 
 # Create directory structure to store logs
 mkdir -p $SCRATCH/Logs/rcc-stroke/
