@@ -91,9 +91,9 @@ def parse_subjects(results_dir: str, no_ROIs: int, separate: bool, only_directed
 
         # Skip non-subject directories
         if subject_dir.startswith('sub-'):
-            subjects_paths.append(os.path.join(results_dir, subject_dir))
-        else:
-            continue
+            # Skip subjects with no results
+            if subject_dir + ".tsv" in os.listdir(os.path.join(results_dir, subject_dir)):
+                subjects_paths.append(os.path.join(results_dir, subject_dir))
 
     # Parse each subject and save effective connectivity matrix to a npy file
     lags_template = None
@@ -115,7 +115,7 @@ def parse_subjects(results_dir: str, no_ROIs: int, separate: bool, only_directed
             assert np.equal(lags, lags_template).all(), f'lags mismatch for subject {subject_name}'
         
         ec_type = '_onlydirected' if only_directed else ''
-        np.save(os.path.join(subject_path, f'{subject_name}{ec_type}_sep.npy'), effective_connectivity)
+        np.save(os.path.join(subject_path, f'{subject_name}{ec_type}.npy'), effective_connectivity)
     
     # Save lag values
     np.save(os.path.join(results_dir, 'lags.npy'), lags_template)

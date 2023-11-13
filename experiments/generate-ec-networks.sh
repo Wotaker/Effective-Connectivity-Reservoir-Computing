@@ -19,7 +19,7 @@
 # NO_ROIS=$3
 
 GITREPO="Effective-Connectivity-Reservoir-Computing"
-RESULTS_DIR="/net/ascratch/people/plgwciezobka/Files/GitRepos/Effective-Connectivity-Reservoir-Computing/Results_rcc-stroke_Split-70_Length-100"
+RESULTS_DIR="/net/ascratch/people/plgwciezobka/Files/GitRepos/Effective-Connectivity-Reservoir-Computing/Results-rcc-stroke/231106_185409"
 NO_ROIS="100"
 
 cd $SCRATCH/Files/GitRepos/$GITREPO
