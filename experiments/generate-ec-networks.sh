@@ -1,6 +1,6 @@
 #!/bin/bash -l
 
-#SBATCH --job-name="RCC-Netsim_batch"
+#SBATCH --job-name="ec-networks"
 #SBATCH -A plgsano4-cpu
 #SBATCH --partition plgrid
 
@@ -18,15 +18,17 @@
 # RESULTS_DIR=$2
 # NO_ROIS=$3
 
+RESULTS_DIR=$1
+METHOD=$2
+
 GITREPO="Effective-Connectivity-Reservoir-Computing"
-RESULTS_DIR="/net/ascratch/people/plgwciezobka/Files/GitRepos/Effective-Connectivity-Reservoir-Computing/Results-rcc-stroke/231106_185409"
 NO_ROIS="100"
 
 cd $SCRATCH/Files/GitRepos/$GITREPO
 
 conda activate $SCRATCH/venvs/rcc-conda-310
 echo "[Debug] Env activated"
-python -u ./utils/generate-ec-matrices.py -r "$RESULTS_DIR" -n "$NO_ROIS"
+python -u ./utils/generate-ec-matrices.py -r "$RESULTS_DIR" -n "$NO_ROIS" -m "$METHOD"
 echo "[Debug] Deactivating env"
 conda deactivate
 
