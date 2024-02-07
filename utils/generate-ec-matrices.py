@@ -4,7 +4,7 @@ import os
 
 from argparse import ArgumentParser
 
-def parse_combined_subject(subject_dir: str, no_ROIs: int, only_directed: bool):
+def parse_combined_subject(subject_dir: str, no_ROIs: int, method_infix: str, only_directed: bool):
     
     subject_name = subject_dir.split('/')[-1].split('_')[0]
     numerical_results = os.path.join(subject_dir, subject_name + '.tsv')
@@ -23,8 +23,8 @@ def parse_combined_subject(subject_dir: str, no_ROIs: int, only_directed: bool):
 
             # Extract causality scores
             filtered_df = results_df[(results_df['ROIx'] == roi_x) & (results_df['ROIy'] == roi_y)]
-            score_xy = filtered_df['SymetricRCCS'].values
-            score_x2y = filtered_df['RCCS'].values
+            score_xy = filtered_df[f'Symetric{method_infix}S'].values
+            score_x2y = filtered_df[f'{method_infix}S'].values
 
             # Assign scores to effective connectivity matrix
             effective_connectivity[:, roi_x - 1, roi_y - 1] = np.nan_to_num(score_x2y + score_xy * (not only_directed))
@@ -41,7 +41,7 @@ def get_lags(sample_roi_file_path: str):
     return roi_df.index.values
 
 
-def parse_single_roi(roi_file_path: str):
+def parse_single_roi(roi_file_path: str, method_infix: str):
 
     # Read ROI file
     roi_df = pd.read_csv(roi_file_path, sep='\t', index_col=0)
@@ -53,14 +53,14 @@ def parse_single_roi(roi_file_path: str):
     lags = roi_df.index.values
 
     # Extract causality scores
-    score_xy = roi_df[f'RCCS {x} <--> {y}'].values
-    score_x2y = roi_df[f'RCCS {x} --> {y}'].values
-    score_y2x = roi_df[f'RCCS {y} --> {x}'].values
+    score_xy = roi_df[f'{method_infix}S {x} <--> {y}'].values
+    score_x2y = roi_df[f'{method_infix}S {x} --> {y}'].values
+    score_y2x = roi_df[f'{method_infix}S {y} --> {x}'].values
 
     return lags, score_xy, score_x2y, score_y2x, int(x), int(y)
     
 
-def parse_single_subject(subject_dir: str, no_ROIs: int):
+def parse_single_subject(subject_dir: str, no_ROIs: int, method_infix: str):
 
     # Get all ROI connection files
     numerical_dir = os.path.join(subject_dir, 'Numerical')
@@ -76,14 +76,14 @@ def parse_single_subject(subject_dir: str, no_ROIs: int):
 
     # Parse each ROI pair file
     for roi_file_path in roi_files_paths:
-        lags, score_xy, score_x2y, score_y2x, x, y = parse_single_roi(roi_file_path)
+        lags, score_xy, score_x2y, score_y2x, x, y = parse_single_roi(roi_file_path, method_infix)
         effective_connectivity[:, x - 1, y - 1] = np.nan_to_num(score_x2y + score_xy)
         effective_connectivity[:, y - 1, x - 1] = np.nan_to_num(score_y2x + score_xy)
     
     return lags, effective_connectivity
     
 
-def parse_subjects(results_dir: str, no_ROIs: int, separate: bool, only_directed: bool):
+def parse_subjects(results_dir: str, no_ROIs: int, method_infix: str, separate: bool, only_directed: bool):
 
     # Get all subjects directories
     subjects_paths = []
@@ -102,11 +102,11 @@ def parse_subjects(results_dir: str, no_ROIs: int, separate: bool, only_directed
 
         if separate:
             lags, effective_connectivity = parse_single_subject(
-                subject_path, no_ROIs=no_ROIs
+                subject_path, no_ROIs=no_ROIs, method_infix=method_infix
             )
         else:
             lags, effective_connectivity = parse_combined_subject(
-                subject_path, no_ROIs=no_ROIs, only_directed=only_directed
+                subject_path, no_ROIs=no_ROIs, method_infix=method_infix, only_directed=only_directed
             )
         
         if lags_template is None:
@@ -127,10 +127,14 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument('-r', '--results_dir', type=str, help="Output directory where results are stored")
     parser.add_argument('-n', '--no_ROIs', type=int, help="Number of ROIs")
+    parser.add_argument('-m', '--method', type=str, default='rcc', choices=['rcc', 'gc'], help="Method used to calculate causality scores")
     parser.add_argument('-s', '--separate', default=False, action='store_true', help="If the results are stored separately")
     parser.add_argument('-d', '--only_directed', default=False, action='store_true', 
                         help="If only directed causality should be considered when calculating score")
     args = parser.parse_args()
 
+    # Parse method infix
+    method_infix = 'RCC' if args.method == 'rcc' else 'GC'
+
     # Parse subjects
-    parse_subjects(args.results_dir, args.no_ROIs, args.separate, args.only_directed)
+    parse_subjects(args.results_dir, args.no_ROIs, method_infix, args.separate, args.only_directed)

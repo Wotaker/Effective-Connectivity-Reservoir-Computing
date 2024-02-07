@@ -225,7 +225,7 @@ def process_single_subject(subject_file, opts, output_dir, json_file_config, for
                     ]
                 )
     
-    # Save all results froma all ROI-pairs combined in a single file
+    # Save all results from all ROI-pairs combined in a single file
     accumulator.to_csv(all_rois_csv_path, index=False, sep='\t', decimal='.')
             
 
