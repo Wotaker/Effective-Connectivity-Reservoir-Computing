@@ -129,7 +129,7 @@ if __name__ == "__main__":
     parser.add_argument('-n', '--no_ROIs', type=int, help="Number of ROIs")
     parser.add_argument('-m', '--method', type=str, default='rcc', choices=['rcc', 'gc'], help="Method used to calculate causality scores")
     parser.add_argument('-s', '--separate', default=False, action='store_true', help="If the results are stored separately")
-    parser.add_argument('-d', '--only_directed', default=False, action='store_true', 
+    parser.add_argument('-d', '--only_directed', default=True, action='store_true', 
                         help="If only directed causality should be considered when calculating score")
     args = parser.parse_args()
 
