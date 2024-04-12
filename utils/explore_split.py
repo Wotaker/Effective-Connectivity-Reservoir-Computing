@@ -1,18 +1,28 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 from argparse import ArgumentParser
 
 
 def explore_files(directory_path: str, min_length: int = 200, plot: bool = True) -> pd.DataFrame:
 
-    def histogram_plot(patological: bool, bins: int = 20):
+    def histogram_plot_multiple(bins: int = 20):
 
-        plt.hist(lengths_df[lengths_df["Patological"] == patological]['Length'], bins=bins)
-        plt.title("Patological subjects" if patological else "Control subjects")
-        plt.xlabel("fMRI timesteps")
-        plt.savefig(os.path.join(directory_path, f"histogram_{'patological' if patological else 'control'}.png"))
+        # Renema column Patological to "Subject Type"
+        lengths_df_hist = lengths_df.rename(columns={"Patological": "Subject Type"})
+
+        # Count total number of timeseries
+        total_timeseries = lengths_df_hist.shape[0]
+        total_pat = lengths_df_hist[lengths_df_hist["Subject Type"] == 1].shape[0]
+        total_con = lengths_df_hist[lengths_df_hist["Subject Type"] == 0].shape[0]
+
+        lengths_df_hist["Subject Type"] = lengths_df_hist["Subject Type"].apply(lambda x: f"Pathological {total_pat}" if x else f"Control {total_con}")
+
+        sns.histplot(data=lengths_df_hist, x='Length', hue='Subject Type', bins=bins, multiple="dodge", shrink=0.8)
+        plt.title(f"Total count: {total_timeseries}")
+        plt.savefig(os.path.join(directory_path, f"dataset-histogram.pdf"))
         plt.clf()
     
     def distribution_plot(max_length: int = 1500):
@@ -45,8 +55,7 @@ def explore_files(directory_path: str, min_length: int = 200, plot: bool = True)
 
     # Plot results
     if plot:
-        histogram_plot(patological=True, bins=20)
-        histogram_plot(patological=False, bins=10)
+        histogram_plot_multiple(bins=20)
         distribution_plot(max_length=1500)
     
     return lengths_df
